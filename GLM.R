@@ -1,0 +1,81 @@
+library(boot) 
+library(car)
+library(QuantPsyc)
+library(lmtest)
+library(sandwich)
+library(vars)
+library(nortest)
+library(MASS)
+library(ggplot2)
+library(corrplot)
+library(chron)
+library(lubridate)
+library(plyr)
+
+setwd("C:/Users/simon/Desktop/r codes")
+data <- read.csv("GalwaySampleWeatherData.csv", header = TRUE, sep = ",")
+data
+str(data)
+names(data)
+
+sapply(data, function(x) sum(is.na(x)))
+
+###Multiple linear regression
+data2 <- data[,-c(1,2,3)]
+data2
+
+
+
+data3 <- data2[,c(1,2,3,5)]
+
+correlations <- cor(data3[,1:4])
+
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot(correlations, method="color", col=col(200),  
+         type="upper", order="hclust", 
+         addCoef.col = "black", # Add coefficient of correlation
+         tl.col="black", tl.srt=45, #Text label color and rotation
+)
+
+
+
+
+boxplot(data3[,c(2,3,4)])
+boxplot(data3[,c(2)])
+
+
+summary(data3)
+
+ll_baro<-(29.33 + (1.5*(30.00 - 29.85)))
+ul_baro<-(30.00 + (1.5*(30.00 - 29.85)))
+
+data3$Barometric.Pressure..inches.[which(data3$Barometric.Pressure..inches.<ll_baro)] <- median(data3$Barometric.Pressure..inches.)
+data3$Barometric.Pressure..inches.[which(data3$Barometric.Pressure..inches.>ul_baro)] <- median(data3$Barometric.Pressure..inches.)
+
+boxplot(data3$Barometric.Pressure..inches.)
+
+
+
+plot(density(data3$Air.Temperature..Degrees.C.) ,col="red")
+
+
+
+fit <- lm(data3$Air.Temperature..Degrees.C. ~  . , data = data3)
+summary(fit)
+
+
+
+#TESTS
+multicolinearity = vif(fit)
+multicolinearity
+
+autocorrelation = dwt(fit)
+autocorrelation
+
+heteroscedasticity = bptest(fit)
+heteroscedasticity 
+plot(fit$fitted.values, fit$residuals)
+
+qqnorm(fit$residuals, main = "Residual Plot", ylab="Standardized Residuals", xlab="Normal Scores")
+qqline(fit$residuals)
+
